@@ -2,7 +2,6 @@
     <div class="TopSite">
         <h1>Contact me</h1>
         <button @click="changeRoute('HomePage')">Home</button>
-        <button @click="changeRoute('CalculatorPage')">Calculator</button>
     </div>
     
     

@@ -3,7 +3,7 @@
         <div class="log">
               <nav>
                 <ul>
-                  <li v-for="log in logs" :key="log">{{log}}</li>
+                  <li v-for="log in logs" :key="log" @click="handleClick(log)">{{log}}</li>
                 </ul>
               </nav>
             </div>
@@ -33,8 +33,6 @@
             <button @click="append(0)" id="button0">0</button>
             <button @click="appendDot" id="buttonDot">.</button>
             <button @click="equal" id="buttonSolve">=</button>
-            <button @click="testConnection">Press me</button>
-            <p>{{ testConnectionString}}</p>
             </div>
             </div>
         </div>
@@ -46,8 +44,11 @@
     
     </template>
     
-    <script>
+    <script >
 import axios, { Axios } from 'axios';
+import { useTokenStore } from "../../stores/token";
+import {getUserInfo} from "/httputils.js"
+
 
 
     export default {
@@ -62,7 +63,33 @@ import axios, { Axios } from 'axios';
           testConnectionString: ''
         }
       },
+      setup(){
+        const tokenStore = useTokenStore();
+        return { tokenStore };
+      },
       methods: {
+        changeRoute(string){
+            this.$router.push({name:string})
+        },
+        handleClick(log) {
+          // Split strengen på mellomrom for å få en liste over verdier
+          const logValues = log.split(' ');
+          
+          if (logValues.length === 5) {
+            // Hent ut tallene og operatoren fra loggen
+            const firstNumber = parseFloat(logValues[0]);
+            const operator = logValues[1];
+            const secondNumber = parseFloat(logValues[2]);
+            
+            // Lagre tallene og operatoren som this.current, this.previous og this.whatOperator
+            this.current = secondNumber;
+            this.whatOperator = operator;
+            this.previous = firstNumber;
+          }
+
+          this.calculate()
+
+        },
         clear() {
           this.current = '';
         },
@@ -110,22 +137,82 @@ import axios, { Axios } from 'axios';
           this.previous = null;
         },
 
-        async testConnection(){
-          this.testConnectionString = await(await (axios.get("http://localhost:8080/"))).data 
-        },
         async calculate(){
           const postObject = {
             a: this.current,
             b: this.previous,
-            operator: this.whatOperator
+            operator: this.whatOperator,
+            expression: "",
+            result: "",
+            user:{
+              username: this.tokenStore.loggedInUser.username,
+              password: "",
+              equations: []
+            }
           }
 
+          const config = {
+                headers: {
+                    "Content-type": "application/json",
+                    "Authorization" : "Bearer " + this.tokenStore.jwtToken
+                },
+            };
 
-          this.current = await(await (axios.post("http://localhost:8080/Calculate", postObject))).data 
-          this.logs.push(await(await (axios.post("http://localhost:8080/Log", postObject))).data )
+          console.log(postObject)
+          this.current = await(await (axios.post("http://localhost:8080/CalculateAndSave", postObject,config))).data 
+          this.logs.unshift(await(await (axios.post("http://localhost:8080/GetLog", postObject,config))).data )          
 
           }
         },
+         async created(){
+      
+          const postObject = {
+            a: this.current,
+            b: this.previous,
+            operator: this.whatOperator,
+            expression: "",
+            result: "",
+            user:{
+              username: this.tokenStore.loggedInUser.username,
+              password: "",
+              equations: []
+            }
+          }
+          const config = {
+                headers: {
+                    "Content-type": "application/json",
+                    "Authorization" : "Bearer " + this.tokenStore.jwtToken
+                },
+            };
+
+          const equations = (await(await (axios.post("http://localhost:8080/GetCalculations", postObject,config))).data )
+          this.logs = equations;
+        },
+        async mounted(){
+          if(!this.tokenStore.jwtToken || this.tokenStore.jwtToken == null) {
+              console.log("Unauthenticated context");
+          } else {
+              console.log("Authenticated context");
+              
+          }
+        },setup() {
+          const tokenStore = useTokenStore();
+
+          function updateToken() {
+            tokenStore.getTokenAndSaveInStore(tokenStore.loggedInUser.username, tokenStore.loggedInUser.password)
+              .then(token => {
+                console.log(token);
+              });
+          }
+
+          updateToken();
+
+          setInterval(() => {
+            updateToken();
+          }, 1000*60*5);
+
+          return { tokenStore };
+      }
     }
 
 </script>
@@ -165,7 +252,11 @@ import axios, { Axios } from 'axios';
   text-align: left;
   font-size: larger;
   color: black;
+  list-style: none;
+  font-size: 20px;
 }
+
+
 .calculator{
   grid-area: LeftSide;
   margin: auto;

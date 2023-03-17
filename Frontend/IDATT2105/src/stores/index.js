@@ -4,7 +4,7 @@ export default createStore({
   state () {
     return {
         name: "",
-        email: ""
+        email: "",
     }
   },
   mutations: {

@@ -26,7 +26,6 @@ public class CalculatorService {
             case "+" -> {
                 result = (current) + (previous);
                 this.log = previous + " + " + current + " = " + result;
-                this.result = String.valueOf(result);
                 return String.valueOf(result);
             }
             case "-" -> {

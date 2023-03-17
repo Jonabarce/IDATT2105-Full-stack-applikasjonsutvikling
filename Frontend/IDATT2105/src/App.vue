@@ -2,12 +2,18 @@
   <router-view/>
 </template>
   
-  <script>
-  
-  export default {
-    name: 'App',
-  }
-  </script>
+<script>
+import { useTokenStore } from "./stores/token";
+
+export default {
+  name: 'App',
+}
+</script>
+
+
+
+
+
   
   <style>
   body{
